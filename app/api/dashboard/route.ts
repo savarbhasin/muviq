@@ -3,6 +3,32 @@ import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 
+interface SubmissionWithRelations {
+  id: string;
+  student: {
+    user: {
+      name: string;
+    };
+  };
+  assignment: {
+    name: string;
+    project: {
+      name: string;
+    };
+  };
+  submittedAt: Date;
+  grade: number | null;
+}
+
+interface AssignmentWithRelations {
+  id: string;
+  name: string;
+  project: {
+    name: string;
+  };
+  dueDate: Date;
+}
+
 const prisma = new PrismaClient();
 
 // GET /api/dashboard - Get dashboard stats and data
@@ -102,10 +128,19 @@ export async function GET(req: NextRequest) {
           pendingEvaluationsCount,
           completedAssignmentsCount
         },
-        recentSubmissions: recentSubmissions.map(submission => ({
+        recentSubmissions: recentSubmissions.map((submission: SubmissionWithRelations) => ({
           id: submission.id,
-          student: submission.student.user.name,
-          assignment: submission.assignment.name,
+          student: {
+            user: {
+              name: submission.student.user.name
+            }
+          },
+          assignment: {
+            name: submission.assignment.name,
+            project: {
+              name: submission.assignment.project.name
+            }
+          },
           project: submission.assignment.project.name,
           submittedAt: submission.submittedAt,
           status: submission.grade !== null ? 'graded' : 'pending',
@@ -151,6 +186,11 @@ export async function GET(req: NextRequest) {
         where: {
           dueDate: {
             gt: new Date()
+          },
+          submissions: {
+            none: {
+              studentId: user.student.id
+            }
           }
         },
         include: {
@@ -168,9 +208,22 @@ export async function GET(req: NextRequest) {
           studentId: user.student.id
         },
         include: {
+          student: {
+            include: {
+              user: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          },
           assignment: {
             include: {
-              project: true
+              project: {
+                select: {
+                  name: true
+                }
+              }
             }
           }
         },
@@ -187,16 +240,26 @@ export async function GET(req: NextRequest) {
           submittedAssignmentsCount,
           badgesCount
         },
-        upcomingAssignments: upcomingAssignments.map(assignment => ({
+        upcomingAssignments: upcomingAssignments.map((assignment: any) => ({
           id: assignment.id,
           name: assignment.name,
           project: assignment.project.name,
           dueDate: assignment.dueDate,
           daysLeft: Math.ceil((new Date(assignment.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
         })),
-        recentSubmissions: recentSubmissions.map(submission => ({
+        recentSubmissions: recentSubmissions.map((submission: SubmissionWithRelations) => ({
           id: submission.id,
-          assignment: submission.assignment.name,
+          student: {
+            user: {
+              name: submission.student.user.name
+            }
+          },
+          assignment: {
+            name: submission.assignment.name,
+            project: {
+              name: submission.assignment.project.name
+            }
+          },
           project: submission.assignment.project.name,
           submittedAt: submission.submittedAt,
           status: submission.grade !== null ? 'graded' : 'pending',

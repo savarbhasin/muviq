@@ -89,7 +89,7 @@ model Submission {
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   submittedAt  DateTime  @default(now())
   grade        Int?
-  remarks      String?   @db.Text
+  feedback     String?   @db.Text
   content      String?   @db.Text
   penalty      Int?      @default(0)
   createdAt    DateTime  @default(now())

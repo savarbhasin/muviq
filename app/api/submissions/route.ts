@@ -103,22 +103,28 @@ export async function GET(req: NextRequest) {
     });
     
     // Format the response
+    // Format the response
     const formattedSubmissions = submissions.map(submission => ({
       id: submission.id,
-      student: submission.student.user.name,
-      studentId: submission.studentId,
-      assignment: submission.assignment.name,
-      assignmentId: submission.assignmentId,
+      student: {
+        user: {
+          name: submission.student.user.name
+        }
+      },
+      assignment: {
+        name: submission.assignment.name,
+        project: {
+          name: submission.assignment.project.name
+        }
+      },
       project: submission.assignment.project.name,
       submittedAt: submission.submittedAt,
       grade: submission.grade,
-      remarks: submission.remarks,
-      content: submission.content,
-      penalty: submission.penalty,
       status: submission.grade !== null ? 'graded' : 'pending'
     }));
     
     return NextResponse.json(formattedSubmissions);
+
   } catch (error) {
     console.error('Error fetching submissions:', error);
     return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
