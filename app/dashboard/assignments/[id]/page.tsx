@@ -13,49 +13,13 @@ import Link from "next/link"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
-interface Assignment {
-  id: string
-  name: string
-  description: string | null
-  rubrics: string | null
-  dueDate: string
-  maxPoints: number
-  projectId: string
-  createdAt: string
-  updatedAt: string
-  project: {
-    id: string
-    name: string
-    professorId: string
-    professor?: {
-      id: string
-      userId: string
-      user?: {
-        name: string
-      }
-    }
-  }
-  submissions?: Array<{
-    id: string
-    content: string
-    grade: number | null
-    feedback: string | null
-    studentId: string
-    createdAt: string
-    student: {
-      user: {
-        name: string
-      }
-    }
-  }>
-}
 
 export default function AssignmentDetailsPage() {
   const { id } = useParams()
   const router = useRouter()
   const { data: session } = useSession()
   const userRole = session?.user?.role
-  const [assignment, setAssignment] = useState<Assignment | null>(null)
+  const [assignment, setAssignment] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [submissionContent, setSubmissionContent] = useState('')
@@ -312,7 +276,7 @@ export default function AssignmentDetailsPage() {
               <TabsContent value="submissions" className="space-y-4 pt-4">
                 {assignment.submissions && assignment.submissions.length > 0 ? (
                   <div className="space-y-4">
-                    {assignment.submissions.map((submission) => (
+                    {assignment.submissions.map((submission: any) => (
                       <Card key={submission.id}>
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
@@ -335,7 +299,7 @@ export default function AssignmentDetailsPage() {
                         </CardContent>
                         <CardFooter>
                           <Button asChild className="w-full">
-                            <Link href={`/dashboard/submissions/${submission.id}/grade`}>
+                            <Link href={`/dashboard/submissions/${submission.id}`}>
                               {submission.grade !== null ? "Update Grade" : "Grade Submission"}
                             </Link>
                           </Button>
@@ -364,13 +328,13 @@ export default function AssignmentDetailsPage() {
                         </div>
                         <div className="bg-muted p-4 rounded-md text-center">
                           <p className="text-2xl font-bold">
-                            {assignment.submissions?.filter(s => s.grade !== null).length || 0}
+                            {assignment.submissions?.filter((s: any) => s.grade !== null).length || 0}
                           </p>
                           <p className="text-sm text-muted-foreground">Graded</p>
                         </div>
                         <div className="bg-muted p-4 rounded-md text-center">
                           <p className="text-2xl font-bold">
-                            {assignment.submissions?.filter(s => s.grade === null).length || 0}
+                            {assignment.submissions?.filter((s: any) => s.grade === null).length || 0}
                           </p>
                           <p className="text-sm text-muted-foreground">Pending</p>
                         </div>

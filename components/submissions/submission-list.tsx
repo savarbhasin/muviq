@@ -13,22 +13,7 @@ export function SubmissionList() {
   const { data: session } = useSession()
   const userRole = session?.user?.role
 
-  interface Submission {
-    id: string;
-    student: string;
-    studentId: string;
-    assignment: string;
-    assignmentId: string;
-    project: string;
-    submittedAt: string;
-    grade: number | null;
-    remarks: string | null;
-    link: string | null;
-    penalty: number | null;
-    status: string;
-  }
-
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -106,14 +91,14 @@ export function SubmissionList() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>{getInitials(submission.student)}</AvatarFallback>
+                      <AvatarFallback>{getInitials(submission.studentName)}</AvatarFallback>
                     </Avatar>
-                    <span>{submission.student}</span>
+                    <span>{submission.studentName}</span>
                   </div>
                 </TableCell>
               )}
-              <TableCell>{submission.assignment}</TableCell>
-              <TableCell>{submission.project}</TableCell>
+              <TableCell>{submission.assignment.name}</TableCell>
+              <TableCell>{submission.assignment.project.name}</TableCell>
               <TableCell>{formatDate(submission.submittedAt)}</TableCell>
               <TableCell>
                 <Badge variant={submission.status === "graded" ? "default" : "secondary"}>

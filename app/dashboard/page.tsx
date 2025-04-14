@@ -24,7 +24,6 @@ export default async function DashboardPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          {userRole === "Professor" && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <DashboardStats />

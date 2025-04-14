@@ -26,7 +26,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Get assignment
     const assignment = await prisma.assignment.findUnique({
       where: { id },
       include: {
@@ -41,7 +40,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
     
-    // If user is a professor, ensure they own the project
     if (user.role === 'Professor' && user.professor) {
       const project = await prisma.project.findFirst({
         where: {
@@ -53,9 +51,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       if (!project) {
         return NextResponse.json({ error: 'Not authorized to access this assignment' }, { status: 403 });
       }
+
+      const submissions = await prisma.submission.findMany({
+        where:{
+          assignmentId: id
+        },
+        include: {
+          student: {
+            include: {
+              user: true
+            }
+          }
+        }
+      })
+
+      return NextResponse.json({
+        ...assignment,
+        submissions: submissions || null
+      })
     }
     
-    // For students, include their submission if any
     if (user.role === 'Student' && user.student) {
       const submission = await prisma.submission.findFirst({
         where: {
@@ -72,7 +87,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       });
     }
     
-    return NextResponse.json(assignment);
   } catch (error) {
     console.error('Error fetching assignment:', error);
     return NextResponse.json({ error: 'Failed to fetch assignment' }, { status: 500 });
@@ -149,59 +163,3 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// DELETE /api/assignments/[id] - Delete an assignment (professor only)
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const { id } = params;
-    
-    // Check if user is a professor
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
-      include: { professor: true }
-    });
-    
-    if (!user || !user.professor || user.role !== 'Professor') {
-      return NextResponse.json({ error: 'Only professors can delete assignments' }, { status: 403 });
-    }
-    
-    // Get assignment
-    const assignment = await prisma.assignment.findUnique({
-      where: { id },
-      include: {
-        project: true
-      }
-    });
-    
-    if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
-    }
-    
-    // Ensure project belongs to the professor
-    const project = await prisma.project.findFirst({
-      where: {
-        id: assignment.projectId,
-        professorId: user.professor.id
-      }
-    });
-    
-    if (!project) {
-      return NextResponse.json({ error: 'Not authorized to delete this assignment' }, { status: 403 });
-    }
-    
-    // Delete assignment (cascades to submissions)
-    await prisma.assignment.delete({
-      where: { id }
-    });
-    
-    return NextResponse.json({ message: 'Assignment deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting assignment:', error);
-    return NextResponse.json({ error: 'Failed to delete assignment' }, { status: 500 });
-  }
-}

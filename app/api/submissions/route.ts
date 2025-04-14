@@ -13,12 +13,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get query parameters
     const url = new URL(req.url);
     const assignmentId = url.searchParams.get('assignmentId');
     const studentId = url.searchParams.get('studentId');
     
-    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true, student: true }
@@ -30,11 +28,8 @@ export async function GET(req: NextRequest) {
     
     let whereClause: any = {};
     
-    // If user is a professor
     if (user.role === 'Professor' && user.professor) {
-      // Filter by assignment if provided
       if (assignmentId) {
-        // Ensure the assignment belongs to one of the professor's projects
         const assignment = await prisma.assignment.findFirst({
           where: {
             id: assignmentId,
@@ -50,7 +45,6 @@ export async function GET(req: NextRequest) {
         
         whereClause.assignmentId = assignmentId;
       } else {
-        // If no assignmentId, get submissions for all assignments in professor's projects
         whereClause.assignment = {
           project: {
             professorId: user.professor.id
@@ -58,22 +52,18 @@ export async function GET(req: NextRequest) {
         };
       }
       
-      // Filter by student if provided
       if (studentId) {
         whereClause.studentId = studentId;
       }
     } 
-    // If user is a student, only show their own submissions
     else if (user.role === 'Student' && user.student) {
       whereClause.studentId = user.student.id;
       
-      // Filter by assignment if provided
       if (assignmentId) {
         whereClause.assignmentId = assignmentId;
       }
     }
     
-    // Get submissions
     const submissions = await prisma.submission.findMany({
       where: whereClause,
       include: {
@@ -101,8 +91,6 @@ export async function GET(req: NextRequest) {
       }
     });
     
-    // Format the response
-    // Format the response
     const formattedSubmissions = submissions.map(submission => ({
       id: submission.id,
       student: {
@@ -110,6 +98,7 @@ export async function GET(req: NextRequest) {
           name: submission.student.user.name
         }
       },
+      studentName: submission.student.user.name,
       assignment: {
         name: submission.assignment.name,
         project: {

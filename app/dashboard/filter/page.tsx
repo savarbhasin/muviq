@@ -36,7 +36,6 @@ export default function FilterSubmissionsPage() {
   const [sortBy, setSortBy] = useState<string>("submittedAt");
   const [sortOrder, setSortOrder] = useState<string>("desc");
 
-  // Load projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -45,7 +44,6 @@ export default function FilterSubmissionsPage() {
         const data = await res.json();
         setProjects(data);
         
-        // Check for project in URL params
         const projectId = searchParams.get("projectId");
         if (projectId) {
           setSelectedProject(projectId);
@@ -63,7 +61,6 @@ export default function FilterSubmissionsPage() {
     }
   }, [session, status, searchParams]);
 
-  // Load assignments when project changes
   useEffect(() => {
     const fetchAssignments = async () => {
       if (!selectedProject) return;
@@ -74,7 +71,6 @@ export default function FilterSubmissionsPage() {
         if (project && project.assignments) {
           setAssignments(project.assignments);
           
-          // Check for assignment in URL params
           const assignmentId = searchParams.get("assignmentId");
           if (assignmentId) {
             setSelectedAssignment(assignmentId);
@@ -95,7 +91,6 @@ export default function FilterSubmissionsPage() {
     fetchAssignments();
   }, [selectedProject, projects, searchParams]);
 
-  // Fetch submissions based on filters
   useEffect(() => {
     const fetchSubmissions = async () => {
       if (!selectedProject && !selectedAssignment) return;
@@ -103,12 +98,14 @@ export default function FilterSubmissionsPage() {
       try {
         setLoading(true);
         
-        // Build query parameters
         const params = new URLSearchParams();
         if (selectedProject) params.append("projectId", selectedProject);
         if (selectedAssignment) params.append("assignmentId", selectedAssignment);
+        
+    
         if (gradeRange[0] > 0) params.append("minGrade", gradeRange[0].toString());
         if (gradeRange[1] < 100) params.append("maxGrade", gradeRange[1].toString());
+        
         if (isGraded !== "all") params.append("isGraded", isGraded);
         if (isLate !== "all") params.append("isLate", isLate);
         params.append("sortBy", sortBy);
@@ -117,6 +114,7 @@ export default function FilterSubmissionsPage() {
         const res = await fetch(`/api/submissions/filter?${params.toString()}`);
         if (!res.ok) throw new Error("Failed to fetch submissions");
         const data = await res.json();
+        console.log(data)
         setSubmissions(data);
       } catch (err) {
         console.error("Error fetching submissions:", err);
@@ -129,16 +127,20 @@ export default function FilterSubmissionsPage() {
     fetchSubmissions();
   }, [selectedProject, selectedAssignment, gradeRange, isGraded, isLate, sortBy, sortOrder]);
 
-  // Handle filter changes
   const handleProjectChange = (value: string) => {
     setSelectedProject(value);
-    setSelectedAssignment(""); // Reset assignment selection
-    router.push(`/dashboard/submissions/filter?projectId=${value}`);
+    setSelectedAssignment("");
+    router.push(`/dashboard/filter?projectId=${value}`);
   };
 
   const handleAssignmentChange = (value: string) => {
-    setSelectedAssignment(value);
-    router.push(`/dashboard/submissions/filter?projectId=${selectedProject}&assignmentId=${value}`);
+    if (value == 'all_assignments') {
+      setSelectedAssignment("");
+      router.push(`/dashboard/filter?projectId=${selectedProject}`);
+    } else {
+      setSelectedAssignment(value);
+      router.push(`/dashboard/filter?projectId=${selectedProject}&assignmentId=${value}`);
+    }
   };
 
   const handleGradeRangeChange = (value: [number, number]) => {
@@ -305,7 +307,14 @@ export default function FilterSubmissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {submissions.length === 0 ? (
+          {error && (
+            <div className="bg-destructive/10 p-4 rounded-md mb-4 flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 text-destructive" />
+              <p className="text-destructive">{error}</p>
+            </div>
+          )}
+          
+          {submissions.length === 0 && !error ? (
             <div className="text-center py-8 text-muted-foreground">
               No submissions match your filter criteria
             </div>
