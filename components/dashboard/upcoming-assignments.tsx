@@ -30,7 +30,6 @@ export function UpcomingAssignments() {
         }
         
         const data = await response.json();
-        // Extract upcoming assignments from dashboard data
         if (data.upcomingAssignments) {
           setAssignments(data.upcomingAssignments);
         }

@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
  
-// GET /api/assignments - Get all assignments or filter by project
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,11 +13,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get query parameters
     const url = new URL(req.url);
     const projectId = url.searchParams.get('projectId');
     
-    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true, student: true }
@@ -30,13 +27,11 @@ export async function GET(req: NextRequest) {
     
     let whereClause = {};
     
-    // If projectId is provided, filter by project
     if (projectId) {
       whereClause = {
         projectId
       };
       
-      // If user is a professor, ensure they own the project
       if (user.role === 'Professor' && user.professor) {
         const project = await prisma.project.findFirst({
           where: {
@@ -50,7 +45,6 @@ export async function GET(req: NextRequest) {
         }
       }
     } else if (user.role === 'Professor' && user.professor) {
-      // If no projectId and user is a professor, get assignments for their projects
       whereClause = {
         project: {
           professorId: user.professor.id
@@ -58,7 +52,6 @@ export async function GET(req: NextRequest) {
       };
     }
     
-    // Get assignments
     const assignments = await prisma.assignment.findMany({
       where: whereClause,
       include: {
@@ -76,7 +69,6 @@ export async function GET(req: NextRequest) {
       }
     });
     
-    // For students, include submission status for each assignment
     if (user.role === 'Student' && user.student) {
       const assignmentsWithSubmissionStatus = await Promise.all(
         assignments.map(async (assignment) => {
@@ -107,7 +99,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/assignments - Create a new assignment (professor only)
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -116,7 +107,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Check if user is a professor
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true }
@@ -132,7 +122,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name, due date, and project ID are required' }, { status: 400 });
     }
     
-    // Check if project exists and belongs to the professor
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
@@ -144,7 +133,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Project not found or not authorized' }, { status: 404 });
     }
     
-    // Create new assignment
     const assignment = await prisma.assignment.create({
       data: {
         name,

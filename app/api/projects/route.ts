@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-// GET /api/projects - Get all projects
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +13,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true, student: true }
@@ -26,7 +24,6 @@ export async function GET(req: NextRequest) {
     
     let projects: Project[] = [];
     
-    // If professor, get their projects
     if (user.role === 'Professor' && user.professor) {
       projects = await prisma.project.findMany({
         where: { professorId: user.professor.id },
@@ -43,8 +40,8 @@ export async function GET(req: NextRequest) {
         }
       });
     } 
-    // If student, get all projects (in a real app, you'd filter by enrollment)
     else if (user.role === 'Student') {
+
       projects = await prisma.project.findMany({
         include: {
           assignments: {
@@ -53,9 +50,19 @@ export async function GET(req: NextRequest) {
               name: true,
               dueDate: true
             }
+          },
+          professor: {
+            include: {
+              user: {
+                select: {
+                  name: true
+                }
+              }
+            }
           }
         }
       });
+      
     }
     
     return NextResponse.json(projects);
@@ -65,7 +72,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/projects - Create a new project (professor only)
+
+// create a  new project
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -74,7 +82,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
    
-    // Check if user is a professor
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true }
@@ -90,7 +97,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
     
-    // Create new project
     const project = await prisma.project.create({
       data: {
         name,

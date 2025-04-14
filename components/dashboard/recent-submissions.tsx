@@ -36,7 +36,6 @@ export function RecentSubmissions() {
         }
         
         const data = await response.json();
-        // Extract recent submissions from dashboard data
         if (data.recentSubmissions) {
           setSubmissions(data.recentSubmissions);
         }
@@ -62,11 +61,11 @@ export function RecentSubmissions() {
   }
 
   const getInitials = (name: string) => {
-    return name
+    return name ? name
       .split(" ")
       .map((n) => n[0])
       .join("")
-      .toUpperCase()
+      .toUpperCase() : ""
   }
 
   if (loading) {
@@ -102,11 +101,14 @@ export function RecentSubmissions() {
                 <Badge variant={submission.status === "graded" ? "default" : "secondary"}>
                   {submission.status === "graded" ? `${submission.grade}%` : "Pending"}
                 </Badge>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/dashboard/submissions/${submission.id}`}>
-                    {userRole === "Professor" ? "Review" : "View"}
-                  </Link>
-                </Button>
+                {
+                  userRole == 'Professor' && 
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/dashboard/submissions/${submission.id}`}>
+                      Review
+                    </Link>
+                  </Button>
+                }
               </div>
             </div>
           ))}

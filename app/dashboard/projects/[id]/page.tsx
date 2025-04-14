@@ -136,7 +136,6 @@ export default function ProjectDetailsPage() {
           <Tabs defaultValue="assignments" className="mt-6">
             <TabsList>
               <TabsTrigger value="assignments">Assignments</TabsTrigger>
-              <TabsTrigger value="students">Students</TabsTrigger>
             </TabsList>
             <TabsContent value="assignments" className="space-y-4 pt-4">
               {project.assignments.length === 0 ? (
@@ -196,24 +195,7 @@ export default function ProjectDetailsPage() {
                 </div>
               )}
             </TabsContent>
-            <TabsContent value="students" className="space-y-4 pt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Enrolled Students</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-6">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Student enrollment data will be displayed here.</p>
-                    {userRole === "Professor" && (
-                      <Button className="mt-4" asChild>
-                        <Link href={`/dashboard/projects/${project.id}/students`}>Manage Students</Link>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+
           </Tabs>
         </div>
 
@@ -229,7 +211,10 @@ export default function ProjectDetailsPage() {
                   <h4 className="text-sm font-medium">Created</h4>
                   <p className="text-sm text-muted-foreground">{formatDate(project.createdAt)}</p>
                 </div>
-                
+                <div>
+                  <h4 className="text-sm font-medium">Professor</h4>
+                  <p className="text-sm text-muted-foreground">{project.professor?.user?.name}</p>
+                </div>
               </div>
             </CardContent>
           </Card>

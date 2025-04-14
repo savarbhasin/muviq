@@ -99,7 +99,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// PUT /api/submissions/[id] - Update a submission (professor for grading)
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
@@ -138,9 +137,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     const requestData = await req.json();
     
-    // Professor grading a submission
     if (user.role === 'Professor' && user.professor) {
-      // Ensure the assignment belongs to one of their projects
       const project = await prisma.project.findFirst({
         where: {
           id: submission.assignment.projectId,
@@ -196,34 +193,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       
       return NextResponse.json(updatedSubmission);
     }
-    // Student updating their submission
-    else if (user.role === 'Student' && user.student) {
-      // Ensure it's their own submission
-      if (submission.studentId !== user.student.id) {
-        return NextResponse.json({ error: 'Not authorized to update this submission' }, { status: 403 });
-      }
-      
-      // Only allow updates if not graded yet
-      if (submission.grade !== null) {
-        return NextResponse.json({ error: 'Cannot update a graded submission' }, { status: 400 });
-      }
-      
-      const { content } = requestData;
-      
-      if (!content) {
-        return NextResponse.json({ error: 'Content is required' }, { status: 400 });
-      }
-      
-      // Update submission content
-      const updatedSubmission = await prisma.submission.update({
-        where: { id },
-        data: { content }
-      });
-      
-      return NextResponse.json(updatedSubmission);
-    } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    
   } catch (error) {
     console.error('Error updating submission:', error);
     return NextResponse.json({ error: 'Failed to update submission' }, { status: 500 });

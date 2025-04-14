@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-// GET /api/dashboard - Get dashboard stats and data
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +13,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true, student: true }
@@ -26,17 +24,14 @@ export async function GET(req: NextRequest) {
     
     let dashboardData = {};
     
-    // Professor dashboard data
     if (user.role === 'Professor' && user.professor) {
-      // Get projects count
+      
       const projectsCount = await prisma.project.count({
         where: { professorId: user.professor.id }
       });
       
-      // Get total students count across all projects (in a real app, this would be more complex)
       const studentsCount = await prisma.student.count();
       
-      // Get pending evaluations count
       const pendingEvaluationsCount = await prisma.submission.count({
         where: {
           grade: null,
@@ -48,7 +43,6 @@ export async function GET(req: NextRequest) {
         }
       });
       
-      // Get completed assignments count
       const completedAssignmentsCount = await prisma.submission.count({
         where: {
           grade: { not: null },
@@ -60,7 +54,6 @@ export async function GET(req: NextRequest) {
         }
       });
       
-      // Get recent submissions
       const recentSubmissions = await prisma.submission.findMany({
         where: {
           assignment: {
@@ -113,12 +106,10 @@ export async function GET(req: NextRequest) {
         }))
       };
     }
-    // Student dashboard data
     else if (user.role === 'Student' && user.student) {
-      // Get enrolled projects count (in a real app, this would be based on enrollment)
+     
       const enrolledProjectsCount = await prisma.project.count();
       
-      // Get pending assignments count
       const pendingAssignmentsCount = await prisma.assignment.count({
         where: {
           dueDate: {
@@ -132,25 +123,27 @@ export async function GET(req: NextRequest) {
         }
       });
       
-      // Get submitted assignments count
       const submittedAssignmentsCount = await prisma.submission.count({
         where: {
           studentId: user.student.id
         }
       });
       
-      // Get badges count
       const badgesCount = await prisma.badge.count({
         where: {
           studentId: user.student.id
         }
       });
       
-      // Get upcoming assignments
       const upcomingAssignments = await prisma.assignment.findMany({
         where: {
           dueDate: {
             gt: new Date()
+          },
+          submissions:{
+            none: {
+              studentId: user.student.id
+            }
           }
         },
         include: {
@@ -162,7 +155,6 @@ export async function GET(req: NextRequest) {
         take: 5
       });
       
-      // Get recent submissions
       const recentSubmissions = await prisma.submission.findMany({
         where: {
           studentId: user.student.id
@@ -196,6 +188,7 @@ export async function GET(req: NextRequest) {
         })),
         recentSubmissions: recentSubmissions.map(submission => ({
           id: submission.id,
+          student: user.name,
           assignment: submission.assignment.name,
           project: submission.assignment.project.name,
           submittedAt: submission.submittedAt,

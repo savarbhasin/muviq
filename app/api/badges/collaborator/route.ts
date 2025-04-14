@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-// POST /api/badges/collaborator - Award a Collaborator badge to a student (professor only)
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +13,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Check if user is a professor
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true }

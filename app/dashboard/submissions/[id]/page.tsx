@@ -138,12 +138,13 @@ export default function SubmissionDetailPage() {
 
     try {
       setGrading(true)
-      const response = await fetch(`/api/submissions/${id}/grade`, {
+      const response = await fetch(`/api/submissions/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          id,
           grade: gradeNum,
           feedback: gradeData.feedback
         })

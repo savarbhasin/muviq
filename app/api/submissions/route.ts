@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-// GET /api/submissions - Get all submissions or filter by assignment/student
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -125,7 +124,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/submissions - Create a new submission (student) or grade a submission (professor)
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -134,7 +132,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true, student: true }
@@ -145,8 +142,7 @@ export async function POST(req: NextRequest) {
     }
     
     const requestData = await req.json();
-    
-    // Student submitting an assignment
+
     if (user.role === 'Student' && user.student) {
       const { assignmentId, content } = requestData;
       
@@ -154,7 +150,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Assignment ID and content are required' }, { status: 400 });
       }
       
-      // Check if assignment exists
       const assignment = await prisma.assignment.findUnique({
         where: { id: assignmentId }
       });
@@ -163,7 +158,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
       }
        
-      // Check if student has already submitted this assignment
       const existingSubmission = await prisma.submission.findFirst({
         where: {
           assignmentId,
@@ -175,17 +169,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'You have already submitted this assignment' }, { status: 400 });
       }
       
-      // Calculate penalty if past due date
       let penalty = 0;
       const now = new Date();
       if (now > assignment.dueDate) {
-        // Calculate days late (rounded up)
         const daysLate = Math.ceil((now.getTime() - assignment.dueDate.getTime()) / (1000 * 60 * 60 * 24));
-        // 5% penalty per day late, up to 50%
         penalty = Math.min(daysLate * 5, 50);
       }
       
-      // Create new submission
       const submission = await prisma.submission.create({
         data: {
           studentId: user.student.id,
@@ -195,11 +185,9 @@ export async function POST(req: NextRequest) {
         }
       });
       
-      // Check if this is an early submission (at least 7 days before deadline)
       const daysToDueDate = Math.ceil((assignment.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysToDueDate >= 7) {
-        // Check if student already has the EarlyBird badge
         const existingBadge = await prisma.badge.findFirst({
           where: {
             studentId: user.student.id,
@@ -207,7 +195,6 @@ export async function POST(req: NextRequest) {
           }
         });
         
-        // Award EarlyBird badge if not already awarded
         if (!existingBadge) {
           await prisma.badge.create({
             data: {
@@ -220,74 +207,67 @@ export async function POST(req: NextRequest) {
       
       return NextResponse.json(submission, { status: 201 });
     } 
-    // Professor grading a submission
-    else if (user.role === 'Professor' && user.professor) {
-      const { submissionId, grade, remarks } = requestData;
+    // else if (user.role === 'Professor' && user.professor) {
+    //   const { submissionId, grade, remarks } = requestData;
       
-      if (!submissionId || grade === undefined) {
-        return NextResponse.json({ error: 'Submission ID and grade are required' }, { status: 400 });
-      }
+    //   if (!submissionId || grade === undefined) {
+    //     return NextResponse.json({ error: 'Submission ID and grade are required' }, { status: 400 });
+    //   }
       
-      // Check if submission exists and belongs to one of the professor's projects
-      const submission = await prisma.submission.findFirst({
-        where: {
-          id: submissionId,
-          assignment: {
-            project: {
-              professorId: user.professor.id
-            }
-          }
-        },
-        include: {
-          assignment: true,
-          student: true
-        }
-      });
+    //   const submission = await prisma.submission.findFirst({
+    //     where: {
+    //       id: submissionId,
+    //       assignment: {
+    //         project: {
+    //           professorId: user.professor.id
+    //         }
+    //       }
+    //     },
+    //     include: {
+    //       assignment: true,
+    //       student: true
+    //     }
+    //   });
       
-      if (!submission) {
-        return NextResponse.json({ error: 'Submission not found or not authorized' }, { status: 404 });
-      }
+    //   if (!submission) {
+    //     return NextResponse.json({ error: 'Submission not found or not authorized' }, { status: 404 });
+    //   }
       
-      // Apply penalty if any
-      let finalGrade = grade;
-      if (submission.penalty && submission.penalty > 0) {
-        finalGrade = Math.max(0, grade - (grade * submission.penalty / 100));
-      }
+    //   let finalGrade = grade;
+    //   if (submission.penalty && submission.penalty > 0) {
+    //     finalGrade = Math.max(0, grade - (grade * submission.penalty / 100));
+    //   }
       
-      // Update submission with grade and remarks
-      const updatedSubmission = await prisma.submission.update({
-        where: { id: submissionId },
-        data: {
-          grade: Math.round(finalGrade), // Round to nearest integer
-          remarks
-        }
-      });
+    //   const updatedSubmission = await prisma.submission.update({
+    //     where: { id: submissionId },
+    //     data: {
+    //       grade: Math.round(finalGrade), // Round to nearest integer
+    //       remarks
+    //     }
+    //   });
       
-      // Check if this is a perfect score (after penalty)
-      if (finalGrade >= submission.assignment.maxPoints) {
-        // Check if student already has the Perfectionist badge
-        const existingBadge = await prisma.badge.findFirst({
-          where: {
-            studentId: submission.studentId,
-            name: 'Perfectionist'
-          }
-        });
+    //   if (finalGrade >= submission.assignment.maxPoints) {
+    //     const existingBadge = await prisma.badge.findFirst({
+    //       where: {
+    //         studentId: submission.studentId,
+    //         name: 'Perfectionist'
+    //       }
+    //     });
         
-        // Award Perfectionist badge if not already awarded
-        if (!existingBadge) {
-          await prisma.badge.create({
-            data: {
-              name: 'Perfectionist',
-              studentId: submission.studentId
-            }
-          });
-        }
-      }
+    //     if (!existingBadge) {
+    //       await prisma.badge.create({
+    //         data: {
+    //           name: 'Perfectionist',
+    //           studentId: submission.studentId
+    //         }
+    //       });
+    //     }
+    //   }
       
-      return NextResponse.json(updatedSubmission);
-    } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    //   return NextResponse.json(updatedSubmission);
+    // } else {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    // }
   } catch (error) {
     console.error('Error handling submission:', error);
     return NextResponse.json({ error: 'Failed to process submission' }, { status: 500 });
