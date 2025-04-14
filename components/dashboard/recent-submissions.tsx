@@ -7,14 +7,36 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
+type Submission = {
+  id: string
+  student: {
+    user: {
+      name: string
+    }
+  }
+  assignment: {
+    name: string
+  }
+  project: string
+  submittedAt: string
+  grade: number | null
+  status: string
+}
+
 export function RecentSubmissions() {
   const { data: session } = useSession()
   const userRole = session?.user?.role
 
   interface Submission {
     id: string;
-    student: string;
-    assignment: string;
+    student: {
+      user: {
+        name: string;
+      };
+    };
+    assignment: {
+      name: string;
+    };
     project: string;
     submittedAt: string;
     status: string;
@@ -86,14 +108,20 @@ export function RecentSubmissions() {
             <div key={submission.id} className="flex items-center justify-between space-x-4 rounded-md border p-4">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>{getInitials(submission.student)}</AvatarFallback>
+                  <AvatarFallback>
+                    {submission.student?.user?.name ? getInitials(submission.student.user.name) : '??'}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-sm font-medium leading-none">
-                    {userRole === "Professor" ? submission.student : submission.assignment}
+                    {userRole === "Professor" 
+                      ? (submission.student?.user?.name || 'Unknown Student')
+                      : (submission.assignment?.name || 'Unknown Assignment')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {submission.project} • {formatDate(submission.submittedAt)}
+                    {userRole === "Professor" 
+                      ? `${submission.assignment?.name || 'Unknown Assignment'} • ${submission.project || 'Unknown Project'}`
+                      : submission.project || 'Unknown Project'} • {formatDate(submission.submittedAt)}
                   </p>
                 </div>
               </div>

@@ -46,7 +46,12 @@ interface Submission {
 }
 
 export default function SubmissionDetailPage() {
-  const { id } = useParams()
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  
+  if (!id) {
+    return <div className="flex justify-center p-8 text-red-500">Invalid submission ID</div>;
+  }
   const router = useRouter()
   const { data: session } = useSession()
   const userRole = session?.user?.role
@@ -54,6 +59,7 @@ export default function SubmissionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [grading, setGrading] = useState(false)
+  const [aiGrading, setAiGrading] = useState(false)
   const [gradeData, setGradeData] = useState({
     grade: '',
     feedback: ''
@@ -176,7 +182,7 @@ export default function SubmissionDetailPage() {
     return <div className="flex justify-center p-8">Loading submission details...</div>
   }
 
-  if (error || !submission) {
+  if (error || !submission || !submission.assignment) {
     return <div className="flex justify-center p-8 text-red-500">{error || 'Submission not found'}</div>
   }
 
@@ -202,9 +208,11 @@ export default function SubmissionDetailPage() {
           <Badge variant={submission.grade !== null ? "outline" : "default"}>
             {submission.grade !== null ? "Graded" : "Pending"}
           </Badge>
-          <Button asChild variant="outline">
-            <Link href={`/dashboard/assignments/${submission.assignment.id}`}>View Assignment</Link>
-          </Button>
+          {submission.assignment && (
+            <Button asChild variant="outline">
+              <Link href={`/dashboard/assignments/${submission.assignment.id}`}>View Assignment</Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -292,9 +300,48 @@ export default function SubmissionDetailPage() {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button type="submit" disabled={grading}>
-                    {grading ? "Saving..." : submission.grade !== null ? "Update Grade" : "Submit Grade"}
+                <CardFooter className="flex justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        setAiGrading(true);
+                        const response = await fetch(`/api/submissions/${id}/grade-ai`, {
+                          method: 'POST'
+                        });
+
+                        if (!response.ok) {
+                          const error = await response.json();
+                          throw new Error(error.error || 'Failed to grade with AI');
+                        }
+
+                        const updatedSubmission = await response.json();
+                        setSubmission(updatedSubmission);
+                        setGradeData({
+                          grade: updatedSubmission.grade.toString(),
+                          feedback: updatedSubmission.feedback || ''
+                        });
+                        toast({
+                          title: 'Success',
+                          description: 'AI grading completed successfully'
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: 'Error',
+                          description: error.message || 'Failed to grade with AI',
+                          variant: 'destructive'
+                        });
+                      } finally {
+                        setAiGrading(false);
+                      }
+                    }}
+                    disabled={aiGrading || grading}
+                  >
+                    {aiGrading ? 'AI Grading...' : 'Grade with AI'}
+                  </Button>
+                  <Button type="submit" disabled={grading || aiGrading}>
+                    {grading ? 'Saving...' : submission.grade !== null ? 'Update Grade' : 'Submit Grade'}
                   </Button>
                 </CardFooter>
               </form>
