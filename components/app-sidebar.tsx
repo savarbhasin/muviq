@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { BarChart3, BookOpen, FileCheck, FolderKanban, Home, Medal, Settings } from "lucide-react"
+import { BarChart3, BookOpen, FileCheck, FolderKanban, Home, Medal, Settings, Trophy } from "lucide-react"
 
 import {
   Sidebar,
@@ -76,18 +76,30 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/dashboard/analytics"} tooltip="Analytics">
-                  <Link href="/dashboard/analytics">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Analytics</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {userRole === "Professor" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === "/dashboard/analytics"} tooltip="Analytics">
+                    <Link href="/dashboard/analytics">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Analytics</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {userRole === "Professor" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === "/dashboard/leaderboard"} tooltip="Leaderboard">
+                    <Link href="/dashboard/leaderboard">
+                      <Trophy className="h-4 w-4" />
+                      <span>Leaderboard</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
+        {/* <SidebarGroup>
           <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -101,7 +113,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
       </SidebarContent>
     </Sidebar>
   )

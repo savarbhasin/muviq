@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export async function gradeSubmission(submission: string, rubrics: string) {
+export async function gradeSubmission(submission: string, rubrics: string, maxPoints: number) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -15,7 +15,7 @@ Student Submission:
 ${submission}
 
 Please provide:
-1. A numerical grade out of 100
+1. A numerical grade out of ${maxPoints}
 2. Detailed feedback explaining the grade
 Format your response as a JSON object with 'grade' and 'feedback' fields.
 `;
@@ -34,13 +34,13 @@ Format your response as a JSON object with 'grade' and 'feedback' fields.
       // Try to parse the AI response as JSON
       const parsed = JSON.parse(text);
       return {
-        grade: Math.min(100, Math.max(0, Math.round(parsed.grade))), // Ensure grade is between 0-100
+        grade: Math.min(maxPoints, Math.max(0, Math.round(parsed.grade))), // Ensure grade is between 0-100
         feedback: parsed.feedback
       };
     } catch (e) {
       // If JSON parsing fails, try to extract grade and feedback from text
       const gradeMatch = text.match(/grade["\s:]+(\d+)/i);
-      const grade = gradeMatch ? Math.min(100, Math.max(0, Math.round(Number(gradeMatch[1])))) : 0;
+      const grade = gradeMatch ? Math.min(maxPoints, Math.max(0, Math.round(Number(gradeMatch[1])))) : 0;
       
       return {
         grade,

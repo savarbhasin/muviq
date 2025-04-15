@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Submission ID is required' }, { status: 400 });
     }
     
-    const id = params.id;
+    const id = await params.id;
     
     // Get user from session
     const user = await prisma.user.findUnique({

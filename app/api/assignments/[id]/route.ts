@@ -16,7 +16,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     const { id } = await params;
     
-    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true, student: true }
@@ -29,10 +28,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const assignment = await prisma.assignment.findUnique({
       where: { id },
       include: {
-        project: true,
+        project: {
+          include:{
+            professor: {
+              include: {
+                user: true
+              }
+            }
+          }
+        },
         _count: {
           select: { submissions: true }
-        }
+        },
+        
       }
     });
     
@@ -78,7 +86,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           studentId: user.student.id
         }
       });
-      
       return NextResponse.json({
         ...assignment,
         submission: submission || null,
@@ -93,7 +100,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// PUT /api/assignments/[id] - Update an assignment (professor only)
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);

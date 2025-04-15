@@ -65,7 +65,7 @@ export async function POST(
     const rubrics = submission.assignment.rubrics || 'Grade based on correctness, completeness, and clarity.';
     
     // Use Gemini to grade the submission
-    const aiGrading = await gradeSubmission(submission.content || '', rubrics);
+    const aiGrading = await gradeSubmission(submission.content || '', rubrics, submission.assignment.maxPoints);
     
     // Apply penalty if any
     let finalGrade = aiGrading.grade;

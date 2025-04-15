@@ -39,15 +39,9 @@ export default function AssignmentDetailsPage() {
         const data = await response.json()
         setAssignment(data)
 
-        // If student, check if they have already submitted
-        if (userRole === 'Student' && data.submissions) {
-          const userSub = data.submissions.find((sub: any) => 
-            sub.student?.user?.email === session?.user?.email
-          )
-          if (userSub) {
-            setUserSubmission(userSub)
-            setSubmissionContent(userSub.content)
-          }
+        if (userRole === 'Student' && data.submission) {
+          setUserSubmission(data.submission)
+          setSubmissionContent(data.submission.content)
         }
       } catch (err) {
         console.error('Error fetching assignment:', err)
