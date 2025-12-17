@@ -1,24 +1,25 @@
+// ./app/api/leaderboard/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-import { Decimal } from '@prisma/client/runtime/library';
-
+/**
+ * Recursively converts BigInt and Prisma.Decimal
+ * into JSON-serializable numbers.
+ */
 function convertBigIntAndDecimal(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
+  if (obj === null || obj === undefined) return obj;
 
   if (typeof obj === 'bigint') {
     return Number(obj);
   }
 
-  // Check for Prisma Decimal instance
-  if (obj instanceof Decimal) {
-    return obj.toNumber(); // or obj.toString() if you want more precision
+  if (obj instanceof Prisma.Decimal) {
+    return obj.toNumber(); // use toString() if precision matters
   }
 
   if (Array.isArray(obj)) {
@@ -39,25 +40,31 @@ function convertBigIntAndDecimal(obj: any): any {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
       include: { professor: true }
     });
-    
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
-    // This is a single efficient query that:
-    // 1. Joins students with their users to get names
-    // 2. Joins with submissions to calculate average grades
-    // 3. Orders by average grade and limits to top 5
-    const rawTopStudents = await prisma.$queryRaw`
+
+    /**
+     * Fetch top 5 students by average grade
+     */
+    const rawTopStudents = await prisma.$queryRaw<
+      {
+        userId: string;
+        studentName: string | null;
+        averageGrade: Prisma.Decimal;
+        submissionCount: bigint;
+      }[]
+    >`
       SELECT 
         u.id as "userId",
         u.name as "studentName",
@@ -75,13 +82,15 @@ export async function GET(req: NextRequest) {
         "averageGrade" DESC
       LIMIT 5
     `;
-    
-    // Apply the conversion to the raw results
+
     const topStudents = convertBigIntAndDecimal(rawTopStudents);
-    
+
     return NextResponse.json(topStudents);
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
-    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch leaderboard' },
+      { status: 500 }
+    );
   }
 }
